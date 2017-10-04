@@ -5,6 +5,11 @@
  */
 package com.lavidatec.demo.oauth2.controller;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
 import com.lavidatec.template.entity.TrainsModel;
 import com.lavidatec.template.service.ITrainService;
 import com.lavidatec.template.service.TrainServiceImpl;
@@ -32,7 +37,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 public class TrainsController {
     
     private ITrainService trainService = new TrainServiceImpl();
-  
+    private Gson gson = new Gson();
     //新增火車資訊
     @RequestMapping(value = "", method = RequestMethod.POST)
     @ResponseBody
@@ -77,6 +82,9 @@ public class TrainsController {
         Optional<List<TrainsModel>> trainFindList = trainService.trainFindList(trainVo);
         System.out.println(trainFindList.get());
         
-        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",new JSONArray(trainFindList.get())), HttpStatus.OK);
+        JsonParser parser = new JsonParser();
+        JsonElement tradeElement = parser.parse(gson.toJson(trainFindList.get()));
+        JsonArray jsonArr = tradeElement.getAsJsonArray();
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",jsonArr), HttpStatus.OK);
     }
 }

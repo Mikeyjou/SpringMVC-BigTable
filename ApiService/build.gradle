@@ -77,5 +77,5 @@ dependencies {
     
     //BigTable
     compile group: 'com.google.cloud.bigtable', name: 'bigtable-hbase-1.x', version: '1.0.0-pre3'
-    compile group: 'io.netty', name: 'netty-tcnative-boringssl-static', version: '1.1.33.Fork26'
+//    compile group: 'io.netty', name: 'netty-tcnative-boringssl-static', version: '1.1.33.Fork26'
 }

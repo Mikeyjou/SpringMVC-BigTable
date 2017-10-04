@@ -35,6 +35,6 @@ public interface IUserService {
     String userBook(final Optional<UsersModel> users,String no)
             throws Exception;
     
-//    String userCancelOrder(final Optional<UsersModel> users,String token)
-//            throws Exception;
+    String userCancelOrder(final Optional<UsersModel> users,String token)
+            throws Exception;
 }

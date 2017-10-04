@@ -195,43 +195,43 @@ public class UserServiceImpl implements IUserService{
 
         return token;
     }
-//    
-//    @Override
-//    public final String userCancelOrder(final Optional<UsersModel> users,String token)
-//            throws Exception {
-//        UsersVo usersVo = new UsersVo();
-//        usersVo.setAccount(users.get().getAccount());
-////        usersVo.setPassword(sha.createHash(users.get().getPassword()));
-//        usersVo.setPassword(users.get().getPassword());
-//        usersVo.setOrderToken(token);
-//        Optional<UsersModel> user = iUsersDao.usersFind(usersVo);
-//        String orderList = "";
-//        String[] eachOrder = new String[0];
-//        //確認使用者存在
-//        if(user.isPresent()){
-//            orderList = user.get().getOrderList();
-//            eachOrder = orderList.split(",");
-//        }
-//        //每筆訂單計算
-//        for(String order : eachOrder){
-//            System.out.println(order);
-//            String[] orderInfo = order.split("_");
-//            if(orderInfo.length == 3){
-//                if(orderInfo[2].equals(token)){
-//                    TrainsVo trainsVo = new TrainsVo();
-//                    trainsVo.setNo(orderInfo[1]);
-//                    ITrainsDao iTrainsDao = new TrainsDaoImpl();
-//                    Optional<TrainsModel> train = iTrainsDao.trainsFind(trainsVo);
-//                    train.get().setTicketsLimit(train.get().getTicketsLimit() + 1);
-//                    iTrainsDao.trainsMerge(train);
-//                    String newOrderList = orderList.replace(order + ",", "");
-//                    newOrderList = newOrderList.replace(order, "");
-//                    user.get().setOrderList(newOrderList);
-//                }
-//            }
-//        }
-//            
-//        iUsersDao.usersMerge(user);
-//        return token;
-//    }
+    
+    @Override
+    public final String userCancelOrder(final Optional<UsersModel> users,String token)
+            throws Exception {
+        UsersVo usersVo = new UsersVo();
+        usersVo.setAccount(users.get().getAccount());
+//        usersVo.setPassword(sha.createHash(users.get().getPassword()));
+        usersVo.setPassword(users.get().getPassword());
+        usersVo.setOrderToken(token);
+        Optional<UsersModel> user = iUsersDao.usersFind(usersVo);
+        String orderList = "";
+        String[] eachOrder = new String[0];
+        //確認使用者存在
+        if(user.isPresent()){
+            orderList = user.get().getOrderList();
+            eachOrder = orderList.split(",");
+        }
+        //每筆訂單計算
+        for(String order : eachOrder){
+            System.out.println(order);
+            String[] orderInfo = order.split("_");
+            if(orderInfo.length == 3){
+                if(orderInfo[2].equals(token)){
+                    TrainsVo trainsVo = new TrainsVo();
+                    trainsVo.setNo(orderInfo[1]);
+                    ITrainsDao iTrainsDao = new TrainsDaoImpl();
+                    Optional<TrainsModel> train = iTrainsDao.trainsFind(trainsVo);
+                    train.get().setTicketsLimit(train.get().getTicketsLimit() + 1);
+                    iTrainsDao.trainsUpdate(train);
+                    String newOrderList = orderList.replace(order + ",", "");
+                    newOrderList = newOrderList.replace(order, "");
+                    user.get().setOrderList(newOrderList);
+                }
+            }
+        }
+            
+        iUsersDao.usersUpdate(user);
+        return token;
+    }
 }

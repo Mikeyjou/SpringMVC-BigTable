@@ -7,6 +7,7 @@ package com.lavidatec.demo.oauth2.controller;
 
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import com.lavidatec.template.entity.TrainsModel;
 import com.lavidatec.template.entity.UsersModel;
 import com.lavidatec.template.pojo.PasswordHash;
@@ -18,6 +19,7 @@ import com.lavidatec.template.vo.TrainsVo;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -132,9 +134,11 @@ public class UsersController {
             //確認使用者存在
             Optional<UsersModel> user = userService.userFind(Optional.of(userModel));
             if(user.isPresent()){
-                JSONObject result = new JSONObject();
-                result.put("Identifier", userService.userLogin(user));
-                return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",new JSONArray().put(result)), HttpStatus.OK);
+                JsonObject result = new JsonObject();
+                result.addProperty("Identifier", userService.userLogin(user));
+                JsonArray jsonArr = new JsonArray();
+                jsonArr.add(result);
+                return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",jsonArr), HttpStatus.OK);
             }else{
                 return new ResponseEntity<>(new ApiResponse(HttpStatus.NOT_FOUND,"Username or password is wrong",null), HttpStatus.NOT_FOUND);
             }
@@ -202,9 +206,11 @@ public class UsersController {
             System.out.println("User controller OptLock" + user.get().getOptimisticLock());
             String orderToken = userService.userBook(user, no);
             if(orderToken != ""){
-                JSONObject result = new JSONObject();
-                result.put("Order token", orderToken);
-                return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",new JSONArray().put(result)), HttpStatus.OK);
+                JsonObject result = new JsonObject();
+                result.addProperty("Order token", orderToken);
+                JsonArray jsonArr = new JsonArray();
+                jsonArr.add(result);
+                return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",jsonArr), HttpStatus.OK);
             }else{
                 return new ResponseEntity<>(new ApiResponse(HttpStatus.BAD_REQUEST,"Book failed",null), HttpStatus.BAD_REQUEST);
             }
@@ -212,35 +218,35 @@ public class UsersController {
             return new ResponseEntity<>(new ApiResponse(HttpStatus.BAD_REQUEST,"Miss some parameters",null), HttpStatus.BAD_REQUEST);
         }
     }
-//    
-//    //取消訂單
-//    @RequestMapping(value = "/order", method = RequestMethod.DELETE)
-//    @ResponseBody
-//    public ResponseEntity<?> cancelOrder(HttpServletRequest request)
-//            throws Exception{
-//        try{
-//            Map<String,String> paramMap = getParam(request);
-//
-//            String account = paramMap.get("account");
-//            String pwd = paramMap.get("password");
-//            String token = paramMap.get("token");
-//            if(StringUtils.isNotBlank(account) && StringUtils.isNotBlank(pwd) && StringUtils.isNotBlank(token)){
-//                UsersModel userModel = new UsersModel();
-//                userModel.setAccount(account);
-//                userModel.setPassword(pwd);
-//                //確認使用者存在
-//                Optional<UsersModel> user = userService.userFind(Optional.of(userModel));
-//                if(!user.isPresent()){
-//                    return new ResponseEntity<>(new ApiResponse(HttpStatus.NOT_FOUND,"Username or password is wrong",null), HttpStatus.NOT_FOUND);
-//                }
-//                if(!user.get().getOrderList().contains(token)){
-//                    return new ResponseEntity<>(new ApiResponse(HttpStatus.BAD_REQUEST,"This order token is wrong",null), HttpStatus.BAD_REQUEST);
-//                }
-//                userService.userCancelOrder(Optional.of(userModel), token);
-//            }
-//            return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",null), HttpStatus.OK);
-//        }catch(ArrayIndexOutOfBoundsException e){
-//            return new ResponseEntity<>(new ApiResponse(HttpStatus.BAD_REQUEST,"Miss some parameters",null), HttpStatus.BAD_REQUEST);
-//        }
-//    }
+    
+    //取消訂單
+    @RequestMapping(value = "/order", method = RequestMethod.DELETE)
+    @ResponseBody
+    public ResponseEntity<?> cancelOrder(HttpServletRequest request)
+            throws Exception{
+        try{
+            Map<String,String> paramMap = getParam(request);
+
+            String account = paramMap.get("account");
+            String pwd = paramMap.get("password");
+            String token = paramMap.get("token");
+            if(StringUtils.isNotBlank(account) && StringUtils.isNotBlank(pwd) && StringUtils.isNotBlank(token)){
+                UsersModel userModel = new UsersModel();
+                userModel.setAccount(account);
+                userModel.setPassword(pwd);
+                //確認使用者存在
+                Optional<UsersModel> user = userService.userFind(Optional.of(userModel));
+                if(!user.isPresent()){
+                    return new ResponseEntity<>(new ApiResponse(HttpStatus.NOT_FOUND,"Username or password is wrong",null), HttpStatus.NOT_FOUND);
+                }
+                if(!user.get().getOrderList().contains(token)){
+                    return new ResponseEntity<>(new ApiResponse(HttpStatus.BAD_REQUEST,"This order token is wrong",null), HttpStatus.BAD_REQUEST);
+                }
+                userService.userCancelOrder(Optional.of(userModel), token);
+            }
+            return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",null), HttpStatus.OK);
+        }catch(ArrayIndexOutOfBoundsException e){
+            return new ResponseEntity<>(new ApiResponse(HttpStatus.BAD_REQUEST,"Miss some parameters",null), HttpStatus.BAD_REQUEST);
+        }
+    }
 }

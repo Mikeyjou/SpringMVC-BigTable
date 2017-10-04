@@ -10,12 +10,17 @@ import com.lavidatec.template.comment.JPAUtil;
 import com.lavidatec.template.entity.TrainsModel;
 import com.lavidatec.template.vo.TrainsVo;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Query;
@@ -23,6 +28,7 @@ import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
@@ -30,7 +36,14 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.filter.BinaryComparator;
+import org.apache.hadoop.hbase.filter.CompareFilter;
+import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.RowFilter;
+import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
@@ -158,7 +171,8 @@ public class TrainsDaoImpl implements ITrainsDao{
 
                     // Put a single row into the table. We could also pass a list of Puts to write a batch.
                     Put put = new Put(Bytes.toBytes(rowKey));
-                    put.addColumn(COLUMN_FAMILY_NAME, Bytes.toBytes(COLUMN_NAME[i]), Bytes.toBytes(props.get(COLUMN_NAME[i])));
+                    System.out.println(String.valueOf(props.get(COLUMN_NAME[i])));
+                    put.addColumn(COLUMN_FAMILY_NAME, Bytes.toBytes(COLUMN_NAME[i]), Bytes.toBytes(String.valueOf(props.get(COLUMN_NAME[i]))));
                     table.put(put);
                 }
             }
@@ -250,6 +264,7 @@ public class TrainsDaoImpl implements ITrainsDao{
             // [START getting_a_row]
             // Get the row by row key
             Result getResult = table.get(new Get(Bytes.toBytes(rowKey)));
+            System.out.println(getResult);
             if(getResult == Result.EMPTY_RESULT)
                 return Optional.empty();
             else{
@@ -297,6 +312,19 @@ public class TrainsDaoImpl implements ITrainsDao{
         return trainsOptional;
     }
 
+    
+    public static String unicodeToString(String str) {
+
+        Pattern pattern = Pattern.compile("(\\\\u(\\p{XDigit}{4}))");    
+        Matcher matcher = pattern.matcher(str);
+        char ch;
+        while (matcher.find()) {
+            ch = (char) Integer.parseInt(matcher.group(2), 16);
+            str = str.replace(matcher.group(1), ch + "");    
+        }
+        return str;
+    }
+    
     @Override
     public final Optional<List<TrainsModel>> trainsFindList(
             final TrainsVo trainsVo)
@@ -328,23 +356,47 @@ public class TrainsDaoImpl implements ITrainsDao{
             if(!admin.tableExists(TableName.valueOf(TABLE_NAME))){
                 return Optional.empty();
             }
+            
+            
+            
             System.out.println("trainFindList start getting rows");
             // [START getting_rows]
             // Get the rows
-            List<Get> queryRowList = new ArrayList<Get>();
+           
+            List<String> arr = new ArrayList<String>();
             if(StringUtils.isNotBlank(trainsVo.getType()))
-                queryRowList.add(new Get(Bytes.toBytes("type:" + trainsVo.getType())));
+                arr.add("trainInformation,type,"+trainsVo.getType());
             if(StringUtils.isNotBlank(trainsVo.getDate()))
-                queryRowList.add(new Get(Bytes.toBytes("date:" + trainsVo.getDate())));
-            System.out.println("Query " + queryRowList);
-            Result[] results = table.get(queryRowList);
-            System.out.println("Result size:" + results.length);
-        
-            for (Result r : results) {
-                System.out.println(Bytes.toString(r.getRow()));
-                result.put("no", Bytes.toString(r.getRow()));
-                trainsModels.add(m.convertValue(result, TrainsModel.class));
+                arr.add("trainInformation,date,"+trainsVo.getDate());
+            FilterList filterList = new FilterList();  
+            Scan s1 = new Scan();  
+            for(String v:arr){ // 各个条件之间是“与”的关系  
+                String [] s=v.split(",");  
+                filterList.addFilter(new SingleColumnValueFilter(Bytes.toBytes(s[0]),  
+                                                                 Bytes.toBytes(s[1]),  
+                                                                 CompareFilter.CompareOp.EQUAL,Bytes.toBytes(s[2])  
+                                                                 )  
+                );  
+                // 添加下面这一行后，则只返回指定的cell，同一行中的其他cell不返回  
+    //          s1.addColumn(Bytes.toBytes(s[0]), Bytes.toBytes(s[1]));  
             }
+            if(StringUtils.isNotBlank(trainsVo.getNo()))
+                filterList.addFilter(new RowFilter(CompareFilter.CompareOp.EQUAL,new BinaryComparator(Bytes.toBytes(trainsVo.getNo()))));
+            
+            s1.setFilter(filterList);  
+            ResultScanner ResultScannerFilterList = table.getScanner(s1);  
+            for(Result rr=ResultScannerFilterList.next();rr!=null;rr=ResultScannerFilterList.next()){  
+                result.clear();
+                for(int i = 0; i < COLUMN_NAME.length; i++){
+                    if(rr.getValue(COLUMN_FAMILY_NAME, Bytes.toBytes(COLUMN_NAME[i])) != null){
+                        System.out.println(COLUMN_NAME[i] + ": " + new String(rr.getValue(COLUMN_FAMILY_NAME, Bytes.toBytes(COLUMN_NAME[i])),"UTF-8"));
+                        result.put(COLUMN_NAME[i], new String(rr.getValue(COLUMN_FAMILY_NAME, Bytes.toBytes(COLUMN_NAME[i])),"UTF-8"));
+                    }
+                }
+                result.put("no", Bytes.toString(rr.getRow()));
+                trainsModels.add(m.convertValue(result, TrainsModel.class));
+            }  
+            
             System.out.println("trainFindList end getting rows");
             // [END getting_rows]
         } catch (IOException e) {
