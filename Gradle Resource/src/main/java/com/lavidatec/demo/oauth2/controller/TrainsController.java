@@ -80,11 +80,14 @@ public class TrainsController {
             trainVo.setDate(searchDate);
         System.out.println(trainVo);
         Optional<List<TrainsModel>> trainFindList = trainService.trainFindList(trainVo);
-        System.out.println(trainFindList.get());
+        if(trainFindList.isPresent()){
+            System.out.println(trainFindList.get());
         
-        JsonParser parser = new JsonParser();
-        JsonElement tradeElement = parser.parse(gson.toJson(trainFindList.get()));
-        JsonArray jsonArr = tradeElement.getAsJsonArray();
-        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",jsonArr), HttpStatus.OK);
+            JsonParser parser = new JsonParser();
+            JsonElement tradeElement = parser.parse(gson.toJson(trainFindList.get()));
+            JsonArray jsonArr = tradeElement.getAsJsonArray();
+            return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",jsonArr), HttpStatus.OK);
+        }else
+            return new ResponseEntity<>(new ApiResponse(HttpStatus.OK,"Success",null), HttpStatus.OK);
     }
 }
